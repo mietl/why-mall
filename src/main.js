@@ -5,6 +5,7 @@ import 'normalize.css/normalize.css'
 
 
 Vue.config.productionTip = false
+Vue.prototype.$bus = new Vue()  // 添加事件总线
 
 
 new Vue({

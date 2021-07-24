@@ -19,20 +19,22 @@ export default {
 </script>
 
 <style scoped>
-  .nav-bar {
-    display:flex;
-    height: 44px;
-    line-height: 44px;
-    text-align: center;
-    -webkit-box-shadow:0 -1px 1px hsl(0deg 0% 59% / 10%);
-    box-shadow:0 -1px 1px hsl(0deg 0% 59% / 10%);
-  }
+.nav-bar {
+  display: flex;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
 
-  .left,.right{
-    width: 60px;
-  }
 
-  .center{
-    flex: 1;
-  }
+  box-shadow: 0 1px 1px rgba(100, 100, 100, 0.08);
+}
+
+.left,
+.right {
+  width: 60px;
+}
+
+.center {
+  flex: 1;
+}
 </style>

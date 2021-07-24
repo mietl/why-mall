@@ -55,13 +55,12 @@ export default {
   },
   created() {},
   mounted() {
-    // 早期的 Vue.js 实现有点问题，新版本的 Vue.js 可以保证 mounted 能拿到 DOM。
     setTimeout(() => {
-    // 1.操作dom，在前后添加Slide
-      this.handleDom()
-    // 2. 开启定时器
-      this.startTimer();
-    },300);
+        // 1.操作dom，在前后添加Slide
+        this.handleDom();
+        // 2. 开启定时器
+        this.startTimer();
+    }, 300);
   },
   methods: {
     startTimer() {
@@ -148,7 +147,7 @@ export default {
       }, this.duration);
     },
     handleDom() {
-      let swiper = document.querySelector(".swiper");
+      let swiper = this.$refs.swiper;
 
       let slides = swiper.getElementsByClassName("slide");
 
@@ -160,7 +159,8 @@ export default {
         let cloneFirst = slides[0].cloneNode(true);
         let cloneLast = [...slides].pop().cloneNode(true);
 
-        swiper.insertBefore(cloneLast, slides[0]);
+         swiper.insertBefore(cloneLast, slides[0]);
+
         swiper.append(cloneFirst);
 
         this.totalWidth = swiper.offsetWidth;

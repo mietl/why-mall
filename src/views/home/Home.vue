@@ -1,27 +1,32 @@
 <template>
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div> </nav-bar>
+    <tab-control
+      v-show="isShowTopTabControl"
+      ref="tabControlSun"
+      :titles="titles"
+      class="tabControl"
+      @tabClick="tabClick"
+    />
 
-    <scroll ref="scroll" :probe-type="3" 
-    @scroll="handleScroll"
-    :pull-up-load="true"
-    @pullingUp="loadMore"
+    <scroll
+      ref="scroll"
+      :probe-type="3"
+      @scroll="handleScroll"
+      :pull-up-load="true"
+      @pullingUp="loadMore"
     >
       <div class="content">
-        <home-swiper :banners="banners" />
+        <home-swiper :banners="banners" @swiperImageLoad="swiperImageLoad" />
         <recommend-view :recommends="recommends" />
         <feature-view />
-        <tab-control
-          :titles="['流行', '新款', '精选']"
-          class="tabControl"
-          @tabClick="tabClick"
-        />
+        <tab-control ref="tabControlMoon" :titles="titles" @tabClick="tabClick" />
 
         <goods-list :goods="myMapAsList" />
       </div>
     </scroll>
     <!-- navtive  监听组件根元素的原生事件 -->
-    <back-top @click.native="backTop" v-show="isShowBackTop"/>
+    <back-top @click.native="backTop" v-show="isShowBackTop" />
   </div>
 </template>
 
@@ -37,7 +42,9 @@ import HomeSwiper from "./components/HomeSwiper";
 import RecommendView from "./components/RecommendView";
 import FeatureView from "./components/FeatureView";
 
-import { getHomeMultidata, getHomeGoods } from "api/home";
+import { getHomeMultidata, getHomeGoods } from "api/home.js";
+import { mixin } from "utils/mixins";
+
 export default {
   name: "Home",
   components: {
@@ -48,24 +55,32 @@ export default {
     TabControl,
     GoodsList,
     Scroll,
-    BackTop
+    BackTop,
   },
   data() {
-    let obj = { page: 0, list: [] };
+    let obj = { page: 0, list: [], scroll: 0 };
 
     return {
       type: "pop",
       banners: [],
       recommends: [],
-      isShowBackTop:false,
-      goods: new Map(
-        Object.entries({
-          pop: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
-          new: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
-          sell: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
-        })
-      ),
-      myMapChangeTracker: 1,
+      isShowTopTabControl: false,
+      isShowBackTop: false,
+      isInit: false,
+      titles: ["流行", "新款", "精选"],
+      // goods: new Map(
+      //   Object.entries({
+      //     pop: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
+      //     new: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
+      //     sell: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
+      //   })
+      // ),
+      goods: {
+        pop: JSON.parse(JSON.stringify(obj)),
+        new: JSON.parse(JSON.stringify(obj)),
+        sell: JSON.parse(JSON.stringify(obj)),
+      },
+      // myMapChangeTracker: 1,
     };
   },
   async created() {
@@ -73,18 +88,16 @@ export default {
     this.getMultiData();
 
     // 2. 请求商品数据
-    this.getGoods("pop");
-    this.getGoods("new");
-    this.getGoods("sell");
+    this.getGoodsInfo("pop");
+    this.getGoodsInfo("new");
+    this.getGoodsInfo("sell");
   },
   computed: {
     myMapAsList() {
       // By using `mySetChangeTracker` we tell Vue that this property depends on it,
       // so it gets re-evaluated whenever `mySetChangeTracker` changes
-      return (
-        this.myMapChangeTracker &&
-        Array.from(this.goods.get(this.type).get("list"))
-      );
+      // return this.myMapChangeTracker && Array.from(this.goods.get(this.type).get("list"));
+      return this.goods[this.type].list;
     },
   },
   methods: {
@@ -93,19 +106,44 @@ export default {
      */
     tabClick(index) {
       let types = ["pop", "new", "sell"];
+
+      // 缓存上次类型
+      let cache = this.type;
+
+      // 更改当前的类型
       this.type = types[index];
+
+      // 只有当TabControl处于固定状态时, 才需要保存上个类型的scroll(当TabControl不处于固定 直接切换会导致 滚动到之前保存scroll位置)
+      if (!(-this.$refs.scroll.getScrollY() < this.tabOffsetTop)) {
+        // 保存上个类型的scroll位置
+        this.goods[cache].scroll = -this.$refs.scroll.getScrollY();
+        // 滚动到要切换到当前类型
+        this.$refs.scroll.scrollTo(0, -this.goods[this.type].scroll, 0);
+      }
+
+      // 将两个tabControl的选中状态进行统一
+      this.$refs.tabControlSun.currentIndex = index;
+      this.$refs.tabControlMoon.currentIndex = index;
     },
-    backTop(){
-      this.$refs.scroll.scrollTo(0,0);
+    backTop() {
+      this.$refs.scroll.scrollTo(0, 0);
     },
-    handleScroll(pos){
-      this.isShowBackTop = (-pos > 1000);
+    handleScroll(pos) {
+      this.isShowBackTop = -pos.y > 1000;
+      this.isShowTopTabControl = -pos.y > this.tabOffsetTop;
     },
-    loadMore(){
-      console.log('上拉加载更多了');
-      this.getGoods(this.type);
+    loadMore() {
+      this.getGoodsInfo(this.type);
     },
-    
+    swiperImageLoad() {
+      // 轮播图片加载完成后记录tabControl的y偏移
+      this.tabOffsetTop = this.$refs.tabControlMoon.$el.offsetTop;
+      
+      // 初始化scroll到状态
+      this.goods["pop"].scroll = this.tabOffsetTop;
+      this.goods["new"].scroll = this.tabOffsetTop;
+      this.goods["sell"].scroll = this.tabOffsetTop;
+    },
 
     /**
      *  网络请求相关方法
@@ -115,15 +153,29 @@ export default {
       this.banners = banner.list;
       this.recommends = recommend.list;
     },
-    async getGoods(type) {
-      let item = this.goods.get(type);
-      const page = item.get("page") + 1;
-      let { data } = await getHomeGoods(type, page);
+    async getGoodsInfo(type) {
+      // let item = this.goods.get(type);
+      // const page = item.get("page") + 1;
+      // item.get("list").push(...data.list);
+      // item.set("page", page);
 
-      item.get("list").push(...data.list);
-      item.set("page", page);
-      this.myMapChangeTracker += 1;
+      // myMapChangeTracker发生改变, myMapAsList发生了变化,需要重新计算,从而达到监听map的变化
+      // this.myMapChangeTracker += 1;
+
+      let item = this.goods[type];
+      const page = item.page + 1;
+
+      let { data } = await getHomeGoods(type, page);
+      item.list.push(...data.list);
+      item.page = page;
+
+      // 上拉加载后,数据已经展示,可以进行下次加载
+      this.$refs.scroll.finishPullUp();
     },
+  },
+  mixins: [mixin],
+  deactivated() {
+    this.$bus.$off("itemImageLoad", this.itemImagehandler);
   },
 };
 </script>
@@ -137,6 +189,11 @@ export default {
   background-color: var(--color-tint);
   font-weight: 700;
   color: #fff;
+  z-index: 10;
+}
+
+.tabControl {
+  position: relative;
   z-index: 10;
 }
 

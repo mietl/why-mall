@@ -57,6 +57,6 @@ export default {
 }
 .active span {
   padding: 1.6vw 1.33333vw;
-  border-bottom: 0.53333vw solid var(--color-high-text);
+  border-bottom: 0.753333vw solid var(--color-high-text);
 }
 </style>
