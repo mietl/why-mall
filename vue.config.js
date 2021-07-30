@@ -1,3 +1,7 @@
+const autoprefixer = require('autoprefixer')
+const pxtorem = require('postcss-pxtorem')
+
+
 module.exports = {
   configureWebpack:{
     resolve: {
@@ -6,9 +10,10 @@ module.exports = {
         "api":"@/api",
         "components":"@/components",
         "views":"@/views",
-        "utils":"@/utils"
+        "utils":"@/utils",
+        "constants":"@/constants"
       }
-    }
+    },
   }
 
 }

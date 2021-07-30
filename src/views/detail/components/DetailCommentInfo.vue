@@ -1,5 +1,5 @@
 <template>
-  <div v-if="commentsInfo.length !== 0" class="comment-info">
+  <div>
     <div class="info-header">
       <div class="header-title">用户评价</div>
       <div class="header-more">
@@ -8,28 +8,38 @@
       </div>
     </div>
 
-    <div v-for="(comment, index) in commentsInfo" :key="index">
-      <div class="user-info">
-        <img :src="comment.user.avatar" alt="" />
-        <span>{{ comment.user.uname }}</span>
-      </div>
+    <div v-if="commentsInfo.length !== 0" class="comment-info">
+      <div v-for="(comment, index) in commentsInfo" :key="index">
+        <div class="user-info">
+          <img :src="comment.user.avatar" alt="" />
+          <span>{{ comment.user.uname }}</span>
+        </div>
 
-      <div class="info-detail">
-        <p>{{ comment.content }}</p>
-        <div class="info-other">
-          <span class="date"> {{ comment.created | formatDate }}</span>
-          <span>{{ comment.style }}</span>
-        </div>
-        <div class="info-imgs">
-          <img :src="item" alt="" v-for="(item, indey) in comment.images" :key="indey" />
+        <div class="info-detail">
+          <p>{{ comment.content }}</p>
+          <div class="info-other">
+            <span class="date"> {{ comment.created | formatDate }}</span>
+            <span>{{ comment.style }}</span>
+          </div>
+          <div class="info-imgs">
+            <img
+              :src="item"
+              alt=""
+              v-for="(item, indey) in comment.images"
+              :key="indey"
+            />
+          </div>
         </div>
       </div>
+    </div>
+    <div v-else>
+      <div class="empty">暂无评论😢 ,快来抢沙发吧!</div>
     </div>
   </div>
 </template>
 
 <script>
-import { formatByString } from "utils";
+import { formatDate } from "utils";
 
 export default {
   name: "DetailCommentInfo",
@@ -44,7 +54,7 @@ export default {
   filters: {
     formatDate(val) {
       const date = new Date(val * 1000);
-      return formatByString(date, "yyyy-MM-dd");
+      return formatDate(date, "yyyy-MM-dd");
     },
   },
 };
@@ -63,6 +73,7 @@ export default {
   height: 50px;
   line-height: 50px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 15px;
 }
 
 .header-title {
@@ -118,5 +129,12 @@ export default {
   width: 70px;
   height: 70px;
   margin-right: 5px;
+}
+
+.empty{
+  text-align:center;
+  height: 100px;
+  line-height: 100px;
+  font-size: 14px;
 }
 </style>

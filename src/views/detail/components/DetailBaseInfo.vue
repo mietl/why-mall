@@ -1,20 +1,20 @@
 <template>
-  <div class="base-info" v-if="Object.keys(goods).length !== 0">
-    <div class="info-title">{{ goods.title }}</div>
+  <div class="base-info" v-if="Object.keys(goodsInfo).length !== 0">
+    <div class="info-title">{{ goodsInfo.title }}</div>
     <div class="info-price">
-      <span class="n-price">{{ goods.newPrice }} </span>
-      <span class="o-price">{{ goods.oldPrice }} </span>
-      <span class="discount" v-if="goods.discountDesc">{{ goods.discountDesc }}</span>
+      <span class="n-price">{{ goodsInfo.newPrice }} </span>
+      <span class="o-price">{{ goodsInfo.oldPrice }} </span>
+      <span class="discount" v-if="goodsInfo.discountDesc">{{ goodsInfo.discountDesc }}</span>
     </div>
     <div class="info-other">
-      <span>{{ goods.columns[0] }} </span>
-      <span>{{ goods.columns[1] }} </span>
-      <span>{{ [...goods.services].pop().name }} </span>
+      <span>{{ goodsInfo.columns[0] }} </span>
+      <span>{{ goodsInfo.columns[1] }} </span>
+      <span>{{ [...goodsInfo.services].pop().name }} </span>
     </div>
     <div class="info-service">
       <div
         class="info-service-item"
-        v-for="(item, index) of [...goods.services].splice(0, goods.services.length - 1)"
+        v-for="(item, index) of [...goodsInfo.services].splice(0, goodsInfo.services.length - 1)"
         :key="index"
       >
         <img :src="item.icon" alt="" />
@@ -28,7 +28,7 @@
 export default {
   name: "DetailBaseInfo",
   props: {
-    goods: {
+    goodsInfo: {
       type: Object,
       default() {
         return {};

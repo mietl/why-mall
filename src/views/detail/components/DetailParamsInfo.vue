@@ -1,16 +1,15 @@
 <template>
   <div class="detail-params" v-if="Object.keys(paramsInfo).length !== 0">
+    <div class="title">
+      {{
+        paramsInfo.rule.key
+      }}
+    </div>
     <table
       class="size-info"
       v-for="(table, index) in paramsInfo.rule.tables"
       :key="index"
     >
-      <caption class="title">
-        {{
-          paramsInfo.rule.key
-        }}
-      </caption>
-
       <tr v-for="(tr, indey) in table" :key="indey">
         <td v-for="(td, indez) in tr" :key="indez">{{ td }}</td>
       </tr>

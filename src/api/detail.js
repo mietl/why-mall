@@ -24,6 +24,8 @@ export class Goods{
     this.nowPrice = itemInfo.highNowPrice;
     this.newPrice = itemInfo.price;
     this.oldPrice = itemInfo.oldPrice;
+    this.realPrice = itemInfo.lowNowPrice;
+
 
     this.columns = columns;
     this.services = services;

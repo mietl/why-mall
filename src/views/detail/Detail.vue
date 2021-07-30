@@ -1,15 +1,17 @@
 <template>
   <div id="detail">
-    <detail-nav-bar ref='navbar' @themeClick="themeClick"/>
-    <scroll ref="scroll">
+    <detail-nav-bar ref="navbar" @themeClick="themeClick" />
+    <scroll ref="scroll" @scroll="handleScroll" :probeType="3">
       <detail-swiper :topImages="topImages" />
-      <detail-base-info :goods="goods" />
+      <detail-base-info :goodsInfo="goodsInfo" />
       <detail-shop-info :shopInfo="shopInfo" />
       <detail-image-info :imageInfo="imageInfo" @imageLoad="imageLoad" />
-      <detail-params-info ref='params' :paramsInfo="paramsInfo" />
-      <detail-comment-info ref='comment' :commentsInfo="commentsInfo" />
-      <goods-list ref='recommend' :goods="recommend" ></goods-list>
+      <detail-params-info ref="params" :paramsInfo="paramsInfo" />
+      <detail-comment-info ref="comment" :commentsInfo="commentsInfo" />
+      <goods-list ref="recommend" :goods="recommend"></goods-list>
     </scroll>
+    <detail-bottom-bar @addToCart="addToCart" />
+    <back-top @click.native="backTop" v-show="isShowBackTop" />
   </div>
 </template>
 
@@ -21,14 +23,18 @@ import DetailImageInfo from "./components/DetailImageInfo";
 import DetailShopInfo from "./components/DetailShopInfo";
 import DetailParamsInfo from "./components/DetailParamsInfo.vue";
 import DetailCommentInfo from "./components/DetailCommentInfo.vue";
+import DetailBottomBar from "./components/DetailBottomBar";
 
 import GoodsList from "components/main/goods/GoodsList";
 import Scroll from "components/common/scroll/Scroll";
 
 import { getDetail, Goods, getRecommend } from "api/detail.js";
 
-import { mixin } from "utils/mixins";
-import { debounce } from 'utils';
+import { BScrollRefreshMixin, backTopMixin } from "utils/mixins";
+
+import { mapActions } from 'vuex';
+
+import { debounce } from "utils";
 
 export default {
   name: "Detail",
@@ -36,14 +42,16 @@ export default {
     return {
       id: null,
       topImages: [],
-      goods: {},
+      goodsInfo: {},
       shopInfo: {},
       imageInfo: {},
       paramsInfo: {},
       commentsInfo: [],
       recommend: [],
-      themeDisTopY:[],
-      getThemeDisTopY:null
+      themeDisTopY: [],
+      getThemeDisTopY: null,
+      currentIndex: 0,
+      navbarHeight: 0,
     };
   },
   created() {
@@ -52,18 +60,72 @@ export default {
     // 请求推荐数据
     this.getRecommend();
 
-
-
     // 对 this.themeTopDisY赋值操作进行防抖
-    this.getThemeDisTopY = debounce(()=>{
-      this.themeDisTopY = [0]
-      this.themeDisTopY.push(this.$refs.params.$el.offsetTop);
-      this.themeDisTopY.push(this.$refs.comment.$el.offsetTop);
-      this.themeDisTopY.push(this.$refs.recommend.$el.offsetTop);
-      console.log(this.themeDisTopY);
-    },100);
+  },
+  mounted() {
+    this.navbarHeight = this.$refs.navbar.$el.offsetHeight;
+
+    this.getThemeDisTopY = debounce(() => {}, 100);
   },
   methods: {
+    ...mapActions(['addCartAction']),
+    async addToCart(){
+        // 1. 获取购物车需要展示的信息
+        const product = {};
+        product.image = this.topImages[0];
+        product.title = this.goodsInfo.title;
+        product.desc = this.goodsInfo.desc;
+        product.price = this.goodsInfo.realPrice;
+        product.iid = this.id
+
+        // 2. 将商品添加到购物车里
+        const message = await this.addCartAction(product);
+        // this.$store.dispatch('addCartAction',product)
+
+        this.$toast.show(message);
+
+    },
+    handleScroll(pos) {
+      // 1. 获取y值
+      let y = -pos.y;
+
+      // 2. y和主题中值进行对比
+      // [0, 6251, 7171, 7383]
+
+      // y 在 0 和 6251 之间 ,index = 0
+      // y 在 =6251 和 7171 之间 ,index =1
+      // y 在 =7171 和 7383 之间 , index = 2
+
+      // y 大于等于 7383 , index 3
+      let len = this.themeDisTopY.length;
+      // 多加了一个,因此少遍历他
+      for (let i = 0; i < len - 1; i++) {
+        if (
+          this.currentIndex != i &&
+          y >= this.themeDisTopY[i] &&
+          y < this.themeDisTopY[i + 1]
+        ) {
+          this.currentIndex = i;
+          this.$refs.navbar.currentIndex = this.currentIndex;
+        }
+      }
+      // for (let i = 0; i < len; i++) {
+      //   if (
+      //     this.currentIndex != i &&
+      //     (
+      //       i < len - 1 &&
+      //       y >= this.themeDisTopY[i] &&
+      //       y < this.themeDisTopY[i + 1]) ||
+      //     (i == len - 1 && y >= this.themeDisTopY[i])
+      //   ) {
+
+      //     this.currentIndex = i;
+      //     this.$refs.navbar.currentIndex = this.currentIndex;
+      //   }
+      // }
+
+      this.backTopControl(pos);
+    },
     imageLoad() {
       // 当图片加载完bscroll进行刷新
       // this.$refs.scroll.refresh();
@@ -71,20 +133,25 @@ export default {
       // 使用混入的防抖函数进行刷新
       this.refresh();
 
+      // this.themeDisTop值的获取
+      // 在 created中获取 ,压根获取不到元素
+      // mounted 中回获取时,数据还未获取到
+      // 在获取到数据的回调中也不行,dom还没有渲染完
+      // $nextTick中, 图片高度没有计算在内
+      // 因此在图片加载完后,获取高度
+      // this.getThemeDisTopY()
 
-    // this.themeDisTop值的获取
-    // 在 created中获取 ,压根获取不到元素
-    // mounted 中回获取时,数据还未获取到
-    // 在获取到数据的回调中也不行,dom还没有渲染完
-    // $nextTick中, 用完图片高度没有计算在内
-
-    // 因此在图片加载完后,获取高度
-      this.getThemeDisTopY();
+      // debounce(() => {
+      this.themeDisTopY = [0];
+      this.themeDisTopY.push(this.$refs.params.$el.offsetTop - this.navbarHeight);
+      this.themeDisTopY.push(this.$refs.comment.$el.offsetTop - this.navbarHeight);
+      this.themeDisTopY.push(this.$refs.recommend.$el.offsetTop - this.navbarHeight);
+      // 保存 js 中的最大数：
+      this.themeDisTopY.push(Number.MAX_VALUE);
+      // }, 300);
     },
-    themeClick(index){
-      let disY = this.themeDisTopY[index] - this.$refs.navbar.$el.offsetHeight;
-      console.log(disY);
-      this.$refs.scroll.scrollTo(0,-disY,100)
+    themeClick(index) {
+      this.$refs.scroll.scrollTo(0, -this.themeDisTopY[index], 100);
     },
     async getDetailInfo() {
       // 1. 保存传入的id
@@ -97,7 +164,7 @@ export default {
       this.topImages = result.itemInfo.topImages;
 
       // 4. 整合商品基本信息数据
-      this.goods = new Goods(result, result.shopInfo.services);
+      this.goodsInfo = new Goods(result, result.shopInfo.services);
 
       // 5. 保存商家店铺信息
       this.shopInfo = result.shopInfo;
@@ -118,7 +185,7 @@ export default {
       this.recommend = data.list;
     },
   },
-  mixins: [mixin],
+  mixins: [BScrollRefreshMixin, backTopMixin],
   components: {
     DetailNavBar,
     DetailSwiper,
@@ -129,10 +196,11 @@ export default {
     DetailParamsInfo,
     DetailCommentInfo,
     GoodsList,
+    DetailBottomBar,
   },
   destroyed() {
     // 当离开详情时,取消监听事件
-    this.$bus.$off("itemImageLoad", this.itemImagehandler);
+    this.$bus.$off("itemImageLoad", this.handleImageLoad);
   },
 };
 </script>
@@ -145,6 +213,7 @@ export default {
 }
 
 .wrapper {
-  height: calc(100vh - 44px);
+  height: calc(100vh - 44px - 49px);
+  overflow: hidden;
 }
 </style>

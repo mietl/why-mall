@@ -25,6 +25,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    data: {
+      type: Array,
+      default: null,
+    },
   },
   data() {
     return {
@@ -64,10 +68,17 @@ export default {
     finishPullUp() {
       this.scroll?.finishPullUp();
     },
-    getScrollY(){
+    getScrollY() {
       return this.scroll?.y;
-    }
-
+    },
+  },
+  watch: {
+    // 监听数据的变化，延时refreshDelay时间后调用refresh方法重新计算，保证滚动效果正常
+    data() {
+      setTimeout(() => {
+        this.refresh();
+      }, this.refreshDelay);
+    },
   },
 };
 </script>
