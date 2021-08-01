@@ -2,7 +2,7 @@
   <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div> </nav-bar>
     <tab-control
-      v-show="isShowTopTabControl"
+      v-show="isTabFixed"
       ref="tabControlSun"
       :titles="titles"
       class="tabControl"
@@ -15,14 +15,15 @@
       @scroll="handleScroll"
       :pull-up-load="true"
       @pullingUp="loadMore"
-      :data="myMapAsList"
+      :data="myAsList"
     >
       <div class="content">
         <home-swiper :banners="banners" @homeImageLoad="imageLoad" />
         <recommend-view :recommends="recommends" @homeImageLoad="imageLoad" />
         <feature-view @homeImageLoad="imageLoad" />
         <tab-control ref="tabControlMoon" :titles="titles" @itemClick="tabClick" />
-        <goods-list :goods="myMapAsList" />
+        <goods-list :goods="myAsList" />
+        <pullup-tips :isPullUpLoad="isPullUpLoad" />
       </div>
     </scroll>
     <!-- navtive  监听组件根元素的原生事件 -->
@@ -40,6 +41,7 @@ import GoodsList from "components/main/goods/GoodsList";
 import HomeSwiper from "./components/HomeSwiper";
 import RecommendView from "./components/RecommendView";
 import FeatureView from "./components/FeatureView";
+import PullupTips from "./components/PullupTips.vue";
 
 import { getHomeMultidata, getHomeGoods } from "api/home.js";
 import { BScrollRefreshMixin, backTopMixin, tabControlMixin } from "utils/mixins";
@@ -56,30 +58,30 @@ export default {
     TabControl,
     GoodsList,
     Scroll,
+    PullupTips,
   },
   data() {
+    let model = {
+      page: 0,
+      list: [],
+      scroll: 0,
+    };
     return {
-      type: TYPES[0],
       banners: [],
       recommends: [],
-      isShowTopTabControl: false,
+      isTabFixed: false,
       titles: ["流行", "新款", "精选"],
-      // goods: new Map(
-      //   Object.entries({
-      //     pop: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
-      //     new: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
-      //     sell: new Map(Object.entries(JSON.parse(JSON.stringify(obj)))),
-      //   })
-      // ),
-      goods: {},
+      // 初始化保存数据的数据结构
+      goods: {
+        pop: JSON.parse(JSON.stringify(model)),
+        new: JSON.parse(JSON.stringify(model)),
+        sell: JSON.parse(JSON.stringify(model)),
+      },
       saveY: 0,
-      // myMapChangeTracker: 1,
+      isPullUpLoad: false,
     };
   },
   async created() {
-    // 初始化保存数据的数据结构
-    this._initData();
-
     // 1. 请求多个数据
     this.getMultiData();
 
@@ -87,56 +89,67 @@ export default {
     TYPES.forEach(this.getGoodsInfo);
   },
   computed: {
-    myMapAsList() {
-      // By using `mySetChangeTracker` we tell Vue that this property depends on it,
-      // so it gets re-evaluated whenever `mySetChangeTracker` changes
-      // return this.myMapChangeTracker && Array.from(this.goods.get(this.type).get("list"));
-      return this.goods[this.type].list;
+    myAsList() {
+      return this.goods[this.currentType].list;
     },
   },
   methods: {
-    _initData() {
-      let temp = { page: 0, list: [], scroll: 626 },
-        create = (item) => this.$set(this.goods, item, JSON.parse(JSON.stringify(temp)));
-      TYPES.forEach(create);
-    },
     /**
      *  事件监听相关方法
      */
-    tabClick(index) {
-      // bug 当没有滚动动画时,图片可能会闪动
-
+    async tabClick(index) {
       // 缓存上次类型
-      let cache = this.type;
-      // 更改当前的类型
-      // this.switchType(index);
-      this.type = TYPES[index];
+      let lastType = this.currentType;
 
-      // 只有当TabControl处于固定状态时, 才需要保存上个类型的scroll(当TabControl不处于固定 直接切换会导致 滚动到之前保存scroll位置)
-      if (!(-this.$refs.scroll.getScrollY() < this.tabOffsetTop)) {
-        // 保存上个类型的scroll位置
-        this.goods[cache].scroll = -this.$refs.scroll.getScrollY();
+      // 方案一
+      this.goods[lastType].scroll = this.scroll.getScrollY();
 
-        // 滚动到要切换到当前类型
+      // // 更改当前的类型
+      this.switchType(index);
 
-        //  注意 当我滚动到指定距离时会触发数据的更新,必须当数据发送改变时必须刷新
-        this.$refs.scroll.scroll.scrollTo(0, -1000, 0);
-      }
+      // // 获取当前类型的scroll位置 (滚动坐标系向下滚动,y为负值)
+      let pos = this.goods[this.currentType].scroll;
 
+      let lastPos = this.goods[lastType].scroll;
+
+      // 简写
+      let y = this.isTabFixed
+        ? -pos >= this.tabOffsetTop
+          ? pos
+          : -this.tabOffsetTop
+        : lastPos;
+
+      this.$refs.scroll.scroll.scrollTo(0, y, 0);
+
+      // 方案二
+
+      // // 当tabControl处于固定状态下, 我需要保存他滚动时当状态
+      // if (this.isTabFixed) {
+      //   // 记录上次滚动位置
+      //   this.goods[lastType].scroll = this.scroll.getScrollY();
+      //   // pos : 上次保存的y值
+      //   // -this.tabOffsetTop 如果第一次没有保存上一次滚动位置, 初始化值为 -this.tabOffsetTop
+      //   let y = -pos >= this.tabOffsetTop ? pos : -this.tabOffsetTop;
+      //   this.$refs.scroll.scroll.scrollTo(0, y, 0);
+      // }
+      // else{
+      // tabControl没有固定,那么不做滚动,只做数据的切换
+      // }
 
       // 将两个tabControl的选中状态进行统一
       this.$refs.tabControlSun.currentIndex = index;
       this.$refs.tabControlMoon.currentIndex = index;
     },
-
     handleScroll(pos) {
       // 控制backtop是否显示
       this.backTopControl(pos);
-
-      this.isShowTopTabControl = -pos.y > this.tabOffsetTop;
+      this.isTabFixed = -pos.y >= this.tabOffsetTop;
     },
-    loadMore() {
-      this.getGoodsInfo(this.type);
+    async loadMore() {
+      this.isPullUpLoad = true;
+
+      // 同步其他类型的数据,两者进行切换时,滚动最大值偏差太大,导致滚动出现问题
+      TYPES.forEach(this.getGoodsInfo);
     },
     imageLoad() {
       // 轮播等图片加载完成后记录tabControl的y偏移
@@ -152,14 +165,6 @@ export default {
       this.recommends = recommend.list;
     },
     async getGoodsInfo(type) {
-      // let item = this.goods.get(type);
-      // const page = item.get("page") + 1;
-      // item.get("list").push(...data.list);
-      // item.set("page", page);
-
-      // myMapChangeTracker发生改变, myMapAsList发生了变化,需要重新计算,从而达到监听map的变化
-      // this.myMapChangeTracker += 1;
-
       let item = this.goods[type];
       const page = item.page + 1;
 
@@ -168,7 +173,10 @@ export default {
       item.page = page;
 
       // 上拉加载后,数据已经展示,可以进行下次加载
-      this.$refs.scroll.finishPullUp();
+      this.scroll.finishPullUp();
+      // 每次下拉进行刷新
+      this.scroll.refresh();
+      this.isPullUpLoad = false;
     },
   },
   mixins: [BScrollRefreshMixin, backTopMixin, tabControlMixin],
@@ -176,12 +184,12 @@ export default {
     // 离开首页时取消监听
     this.$bus.$off("itemImageLoad", this.handleImageLoad);
     // 记录滚动位置
-    this.saveY = this.$refs.scroll.getScrollY();
+    this.saveY = this.scroll.getScrollY();
   },
   activated() {
     // 当进入页面时滚动到之前保存到位置
-    this.$refs.scroll.scrollTo(0, this.saveY);
-    this.$refs.scroll.refresh();
+    this.scroll.scrollTo(0, this.saveY);
+    this.scroll.refresh();
     this.$bus.$on("itemImageLoad", this.handleImageLoad);
   },
 };

@@ -9,10 +9,7 @@
       <scroll class="tab-content" ref="scroll">
         <category-list :subcategory="currentCategory" />
 
-        <tab-control
-          :titles="['综合', '新品', '销量']"
-          @itemClick="switchType"
-        />
+        <tab-control :titles="['综合', '新品', '销量']" @itemClick="switchType" />
 
         <category-goods :goods="categoryGoods" />
       </scroll>
@@ -29,11 +26,7 @@ import TabMenu from "./components/TabMenu.vue";
 import CategoryList from "./components/CategioryList.vue";
 import CategoryGoods from "./components/CategoryGoods.vue";
 
-import {
-  getCategory,
-  getSubCategory,
-  getCategoryDetail,
-} from "api/category.js";
+import { getCategory, getSubCategory, getCategoryDetail } from "api/category.js";
 
 import { BScrollRefreshMixin, tabControlMixin } from "utils/mixins";
 
@@ -66,9 +59,9 @@ export default {
       return this.categories[this.currentIndex].subcategory;
     },
     categoryGoods() {
-      console.log('12');
       if (this.currentIndex === -1) return [];
       // 注 此处this.currentType来自tabControllMixin
+      // console.log(this.categories[this.currentIndex].goods[this.currentType]);
       return this.categories[this.currentIndex].goods[this.currentType];
     },
   },
@@ -86,6 +79,8 @@ export default {
           goods: { pop: [], new: [], sell: [] },
         });
       }
+
+      // 234.67 / 226.96800000000002
 
       // 3. 请求第一个分类的数据
       this.getSubcategory(0);

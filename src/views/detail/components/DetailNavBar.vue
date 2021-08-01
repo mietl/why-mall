@@ -31,7 +31,7 @@ export default {
   methods: {
     itemClick(index) {
       this.currentIndex = index;
-      this.$emit('themeClick',index)
+      this.$emit("themeClick", index);
     },
     back() {
       this.$router.back();

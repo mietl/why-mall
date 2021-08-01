@@ -8,7 +8,8 @@ export const BScrollRefreshMixin ={
     }
   },
   mounted () {
-    this.refresh = debounce(this.$refs.scroll.refresh, 50);
+    this.scroll = this.$refs.scroll;
+    this.refresh = debounce(this.scroll.refresh, 50);
     
     this.handleImageLoad = () => {
       this.refresh();
@@ -28,7 +29,7 @@ export const backTopMixin = {
   },
   methods: {
     backTop() {
-      this.$refs.scroll.scrollTo(0, 0);
+      this.scroll.scrollTo(0, 0);
     },
     backTopControl(pos){
       this.isShowBackTop = -pos.y > 1000;
@@ -45,6 +46,7 @@ import { TYPES } from 'constants';
 export const tabControlMixin = {
   data(){
     return {
+      currentType:TYPES[0]
     }
   },
   methods:{

@@ -49,13 +49,12 @@ export default {
       let itemWidth =
         (grid.clientWidth - 2 * this.xm - (this.col - 1) * this.gap) / this.col;
 
-
       for (let i = 0; i < children.length; i++) {
         let item = children[i];
 
-        item.style.width = itemWidth + "px";
+        item.style.width = parseInt(itemWidth) + "px";
 
-        if ((i + 1) % this.col != 0) {
+        if ((i + 1) % this.col !== 0) {
           item.style.marginRight = this.gap + "px";
         }
 
@@ -72,5 +71,6 @@ export default {
 .grid-view {
   display: flex;
   flex-wrap: wrap;
+  /* box-sizing: border-box; */
 }
 </style>

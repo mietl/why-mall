@@ -29,6 +29,10 @@ export default {
       type: Array,
       default: null,
     },
+    refreshDelay: {
+      type: Number,
+      default: 20,
+    },
   },
   data() {
     return {
@@ -39,6 +43,8 @@ export default {
     setTimeout(() => {
       // 1. 创建 BScroll对象
       this.scroll = new BScroll(this.$refs.wrapper, {
+        observeDOM: true,
+        observeImage: true,
         click: this.click,
         probeType: this.probeType,
         pullUpLoad: this.pullUpLoad,
@@ -52,6 +58,7 @@ export default {
       if (this.pullUpLoad) {
         // 3.监听上拉事件
         this.scroll.on("pullingUp", () => {
+          console.log("上拉加载了");
           this.$emit("pullingUp");
         });
       }
@@ -60,6 +67,10 @@ export default {
   methods: {
     scrollTo(x, y, duration = 300) {
       this.scroll?.scrollTo(x, y, duration);
+    },
+    scrollToElement() {
+      // 代理better-scroll的scrollToElement方法
+      this.scroll?.scrollToElement.apply(this.scroll, arguments);
     },
     // 代理better-scroll的refresh方法
     refresh() {

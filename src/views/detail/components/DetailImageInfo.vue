@@ -11,7 +11,7 @@
         <img
           v-for="(item, index) in item.list"
           :key="index"
-          :src="item"
+          v-lazy="item"
           @load="imageLoad"
           alt=""
         />
@@ -45,7 +45,7 @@ export default {
   methods: {
     imageLoad() {
       // if (++this.counter === this.imagesLength) {
-        this.$emit("imageLoad");
+      this.$emit("imageLoad");
       // }
     },
   },

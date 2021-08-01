@@ -2,7 +2,7 @@
   <div id="detail">
     <detail-nav-bar ref="navbar" @themeClick="themeClick" />
     <scroll ref="scroll" @scroll="handleScroll" :probeType="3">
-      <detail-swiper :topImages="topImages" />
+      <detail-swiper ref="goods" :topImages="topImages" />
       <detail-base-info :goodsInfo="goodsInfo" />
       <detail-shop-info :shopInfo="shopInfo" />
       <detail-image-info :imageInfo="imageInfo" @imageLoad="imageLoad" />
@@ -32,9 +32,7 @@ import { getDetail, Goods, getRecommend } from "api/detail.js";
 
 import { BScrollRefreshMixin, backTopMixin } from "utils/mixins";
 
-import { mapActions } from 'vuex';
-
-import { debounce } from "utils";
+import { mapActions } from "vuex";
 
 export default {
   name: "Detail",
@@ -52,6 +50,8 @@ export default {
       getThemeDisTopY: null,
       currentIndex: 0,
       navbarHeight: 0,
+      // isLoaded: false, // 用于判断图片是否已经加载完成
+      // counter: 0,
     };
   },
   created() {
@@ -63,27 +63,40 @@ export default {
     // 对 this.themeTopDisY赋值操作进行防抖
   },
   mounted() {
-    this.navbarHeight = this.$refs.navbar.$el.offsetHeight;
-
-    this.getThemeDisTopY = debounce(() => {}, 100);
+    // 方案一
+    // this.navbarHeight = this.$refs.navbar.$el.offsetHeight;
+    // this.getThemeDisTopY = debounce(() => {
+    // this.themeDisTop值的获取
+    // 在 created中获取 ,压根获取不到元素
+    // mounted 中回获取时,数据还未获取到
+    // 在获取到数据的回调中也不行,dom还没有渲染完
+    // $nextTick中, 图片高度没有计算在内
+    // 因此在图片加载完后,获取高度
+    // this.getThemeDisTopY()
+    //   this.themeDisTopY = [0];
+    //   this.themeDisTopY.push(this.$refs.params.$el.offsetTop - this.navbarHeight);
+    //   this.themeDisTopY.push(this.$refs.comment.$el.offsetTop - this.navbarHeight);
+    //   this.themeDisTopY.push(this.$refs.recommend.$el.offsetTop - this.navbarHeight);
+    //   // 保存 js 中的最大数：
+    //   this.themeDisTopY.push(Number.MAX_VALUE);
+    // }, 100);
   },
   methods: {
-    ...mapActions(['addCartAction']),
-    async addToCart(){
-        // 1. 获取购物车需要展示的信息
-        const product = {};
-        product.image = this.topImages[0];
-        product.title = this.goodsInfo.title;
-        product.desc = this.goodsInfo.desc;
-        product.price = this.goodsInfo.realPrice;
-        product.iid = this.id
+    ...mapActions(["addCartAction"]),
+    async addToCart() {
+      // 1. 获取购物车需要展示的信息
+      const product = {};
+      product.image = this.topImages[0];
+      product.title = this.goodsInfo.title;
+      product.desc = this.goodsInfo.desc;
+      product.price = this.goodsInfo.realPrice;
+      product.iid = this.id;
 
-        // 2. 将商品添加到购物车里
-        const message = await this.addCartAction(product);
-        // this.$store.dispatch('addCartAction',product)
+      // 2. 将商品添加到购物车里
+      const message = await this.addCartAction(product);
+      // this.$store.dispatch('addCartAction',product)
 
-        this.$toast.show(message);
-
+      this.$toast.show(message);
     },
     handleScroll(pos) {
       // 1. 获取y值
@@ -131,27 +144,18 @@ export default {
       // this.$refs.scroll.refresh();
 
       // 使用混入的防抖函数进行刷新
+      // if (++this.counter === this.imageInfo.detailImage[0].list.length) {
+      //   this.isLoaded = true;
+      // }
       this.refresh();
-
-      // this.themeDisTop值的获取
-      // 在 created中获取 ,压根获取不到元素
-      // mounted 中回获取时,数据还未获取到
-      // 在获取到数据的回调中也不行,dom还没有渲染完
-      // $nextTick中, 图片高度没有计算在内
-      // 因此在图片加载完后,获取高度
-      // this.getThemeDisTopY()
-
-      // debounce(() => {
-      this.themeDisTopY = [0];
-      this.themeDisTopY.push(this.$refs.params.$el.offsetTop - this.navbarHeight);
-      this.themeDisTopY.push(this.$refs.comment.$el.offsetTop - this.navbarHeight);
-      this.themeDisTopY.push(this.$refs.recommend.$el.offsetTop - this.navbarHeight);
-      // 保存 js 中的最大数：
-      this.themeDisTopY.push(Number.MAX_VALUE);
-      // }, 300);
     },
     themeClick(index) {
-      this.$refs.scroll.scrollTo(0, -this.themeDisTopY[index], 100);
+      let refKey = ["goods", "params", "comment", "recommend"],
+        el = this.$refs[refKey[index]].$el;
+
+      this.$refs.scroll.scrollToElement(el);
+
+      // this.$refs.scroll.scrollTo(0, -this.themeDisTopY[index], 100);
     },
     async getDetailInfo() {
       // 1. 保存传入的id
