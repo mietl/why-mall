@@ -63,7 +63,6 @@ export default {
   data() {
     let model = {
       page: 0,
-      list: [],
       scroll: 0,
     };
     return {
@@ -73,9 +72,9 @@ export default {
       titles: ["流行", "新款", "精选"],
       // 初始化保存数据的数据结构
       goods: {
-        pop: JSON.parse(JSON.stringify(model)),
-        new: JSON.parse(JSON.stringify(model)),
-        sell: JSON.parse(JSON.stringify(model)),
+        pop: Object.assign({}, model, { list: [] }),
+        new: Object.assign({}, model, { list: [] }),
+        sell: Object.assign({}, model, { list: [] }),
       },
       saveY: 0,
       isPullUpLoad: false,
@@ -166,6 +165,7 @@ export default {
     },
     async getGoodsInfo(type) {
       let item = this.goods[type];
+      console.log(item);
       const page = item.page + 1;
 
       let { data } = await getHomeGoods(type, page);

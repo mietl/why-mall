@@ -56,10 +56,10 @@ export default {
   created() {},
   mounted() {
     setTimeout(() => {
-        // 1.操作dom，在前后添加Slide
-        this.handleDom();
-        // 2. 开启定时器
-        this.startTimer();
+      // 1.操作dom，在前后添加Slide
+      this.handleDom();
+      // 2. 开启定时器
+      this.startTimer();
     }, 300);
   },
   methods: {
@@ -159,7 +159,7 @@ export default {
         let cloneFirst = slides[0].cloneNode(true);
         let cloneLast = [...slides].pop().cloneNode(true);
 
-         swiper.insertBefore(cloneLast, slides[0]);
+        swiper.insertBefore(cloneLast, slides[0]);
 
         swiper.append(cloneFirst);
 
