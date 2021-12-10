@@ -1,4 +1,4 @@
-# HMail
+# LMail
 
 ## Project setup
 ```
