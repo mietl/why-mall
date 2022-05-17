@@ -1,4 +1,4 @@
-# LMail
+# whymall
 
 ## Project setup
 ```
